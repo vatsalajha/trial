@@ -3,6 +3,11 @@ name: scrape-jobs
 # to GitHub Pages. Feed URL becomes: https://<user>.github.io/<repo>/jobs.json
 # Paste that into the app's sidebar as a "Custom JSON URL" source (GitHub Pages sends CORS: *).
 on:
+  push:
+    branches: [main]
+    paths:                  # only re-scrape when the registry (or scraper code) changes
+      - 'scraper/**'
+      - '.github/workflows/scrape.yml'
   schedule:
     - cron: '*/15 * * * *'
   workflow_dispatch:        # lets you run it manually from the Actions tab
