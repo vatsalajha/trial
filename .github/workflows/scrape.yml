@@ -1,0 +1,39 @@
+name: scrape-jobs
+# Free scheduled scraping. Runs every 15 min, scrapes, and publishes public/jobs.json
+# to GitHub Pages. Feed URL becomes: https://<user>.github.io/<repo>/jobs.json
+# Paste that into the app's sidebar as a "Custom JSON URL" source (GitHub Pages sends CORS: *).
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:        # lets you run it manually from the Actions tab
+
+# Pages-native deploy: no commit spam, stable URL, CORS: * out of the box.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two scheduled runs deploy at once; let a manual run cancel a pending one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Scrape
+        run: node scraper/main.mjs   # adapters are Promise.allSettled — one failure never fails the run
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public               # serves public/jobs.json at /jobs.json
+      - id: deployment
+        uses: actions/deploy-pages@v4

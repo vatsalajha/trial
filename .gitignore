@@ -1,0 +1,4 @@
+# jobs.json is generated fresh by the workflow on each run — not committed
+public/
+node_modules/
+.DS_Store

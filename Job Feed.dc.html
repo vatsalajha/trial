@@ -1,0 +1,1100 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #F6F5F1; }
+  * { box-sizing: border-box; }
+  a { color: #1E6B50; text-decoration: none; }
+  a:hover { color: #14503B; text-decoration: underline; }
+  input:focus, select:focus { outline: none; border-color: #1E6B50 !important; }
+  input[type=range] { accent-color: #1E6B50; }
+  ::selection { background: #DCEDE4; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+</helmet>
+<div data-screen-label="Job Feed" style="min-height:100vh;background:#F6F5F1;color:#17191E;font-family:'Space Grotesk',sans-serif;">
+
+  <header style="position:sticky;top:0;z-index:50;background:#FFFFFF;border-bottom:1px solid #E5E3DB;display:flex;align-items:center;gap:16px;padding:0 24px;height:60px;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:26px;height:26px;border-radius:8px;background:#1E6B50;display:flex;align-items:center;justify-content:center;">
+        <div style="width:8px;height:8px;border-radius:50%;background:#FFFFFF;"></div>
+      </div>
+      <div style="font-weight:700;font-size:17px;letter-spacing:-0.2px;">JobRadar</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;padding:4px 12px;border:1px solid #E5E3DB;border-radius:999px;background:#FAFAF7;flex:none;white-space:nowrap;">
+      <div style="{{ liveDotStyle }}"></div>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#1E6B50;font-weight:600;">LIVE</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8B9086;">{{ syncedLabel }}</span>
+      <button onClick="{{ refresh }}" title="Refresh now" style="border:none;background:none;padding:0 0 0 2px;cursor:pointer;font-size:13px;color:#1E6B50;line-height:1;">↻</button>
+    </div>
+    <div style="flex:1;"></div>
+    <input value="{{ query }}" onChange="{{ setQuery }}" placeholder="Search roles, companies, skills…" style="width:340px;height:36px;border:1px solid #E5E3DB;border-radius:10px;padding:0 12px;font-size:13px;font-family:'Space Grotesk',sans-serif;background:#FAFAF7;color:#17191E;">
+  </header>
+
+  <div style="display:flex;gap:24px;max-width:1480px;margin:0 auto;padding:24px;align-items:flex-start;">
+
+    <aside style="width:272px;flex:none;position:sticky;top:84px;max-height:calc(100vh - 108px);overflow:auto;background:#FFFFFF;border:1px solid #E5E3DB;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:1.5px;color:#33372F;">FILTERS</span>
+        <sc-if value="{{ hasFilters }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ clearAll }}" style="border:none;background:none;padding:0;font-family:'JetBrains Mono',monospace;font-size:11px;color:#1E6B50;cursor:pointer;text-decoration:underline;">Clear all</button>
+        </sc-if>
+      </div>
+
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px;color:#33372F;">
+        <input type="checkbox" checked="{{ roleOnly }}" onChange="{{ toggleRoleOnly }}" style="accent-color:#1E6B50;width:14px;height:14px;cursor:pointer;">
+        SWE / AI roles only
+      </label>
+
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1.2px;color:#8B9086;">LOCATION</span>
+        <input value="{{ loc }}" onChange="{{ setLoc }}" placeholder="City, state, or country" style="height:34px;border:1px solid #E5E3DB;border-radius:9px;padding:0 10px;font-size:12.5px;font-family:'Space Grotesk',sans-serif;background:#FAFAF7;color:#17191E;width:100%;">
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1.2px;color:#8B9086;">WORK MODE</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <sc-for list="{{ modeChips }}" as="chip" hint-placeholder-count="4">
+            <button onClick="{{ chip.onClick }}" style="{{ chip.style }}">{{ chip.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1.2px;color:#8B9086;">EXPERIENCE</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <sc-for list="{{ expChips }}" as="chip" hint-placeholder-count="4">
+            <button onClick="{{ chip.onClick }}" style="{{ chip.style }}">{{ chip.label }}</button>
+          </sc-for>
+        </div>
+        <span style="font-size:10.5px;color:#8B9086;line-height:1.4;">Internships are always excluded.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1.2px;color:#8B9086;">COUNTRY</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <sc-for list="{{ countryChips }}" as="chip" hint-placeholder-count="3">
+            <button onClick="{{ chip.onClick }}" style="{{ chip.style }}">{{ chip.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1.2px;color:#8B9086;">MIN SALARY</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:#1E6B50;">{{ salaryLabel }}</span>
+        </div>
+        <input type="range" min="0" max="250000" step="10000" value="{{ salaryMin }}" onChange="{{ setSalary }}" style="width:100%;cursor:pointer;">
+        <sc-if value="{{ salaryOn }}" hint-placeholder-val="{{ false }}">
+          <span style="font-size:11px;color:#8B9086;line-height:1.4;">Roles without a listed pay range are hidden while this is set.</span>
+        </sc-if>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1.2px;color:#8B9086;">TECH STACK</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <sc-for list="{{ tagChips }}" as="chip" hint-placeholder-count="8">
+            <button onClick="{{ chip.onClick }}" style="{{ chip.style }}">{{ chip.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1.2px;color:#8B9086;">PLATFORM</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <sc-for list="{{ atsChips }}" as="chip" hint-placeholder-count="3">
+            <button onClick="{{ chip.onClick }}" style="{{ chip.style }}">{{ chip.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1.2px;color:#8B9086;">POSTED WITHIN</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <sc-for list="{{ timeChips }}" as="chip" hint-placeholder-count="5">
+            <button onClick="{{ chip.onClick }}" style="{{ chip.style }}">{{ chip.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="border-top:1px solid #EEECE4;padding-top:16px;display:flex;flex-direction:column;gap:10px;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:1.5px;color:#33372F;">SOURCES</span>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <sc-for list="{{ sourceRows }}" as="row" hint-placeholder-count="6">
+            <div style="display:flex;align-items:center;gap:8px;padding:5px 8px;border:1px solid #EEECE4;border-radius:8px;background:#FAFAF7;">
+              <div style="{{ row.dotStyle }}"></div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
+                <span style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ row.label }}</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:9.5px;color:#8B9086;">{{ row.sub }}</span>
+              </div>
+              <button onClick="{{ row.remove }}" title="Remove source" style="border:none;background:none;padding:2px;cursor:pointer;color:#B9BFB3;font-size:13px;line-height:1;" style-hover="color:#B4231F;">×</button>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;gap:6px;">
+            <select value="{{ addAts }}" onChange="{{ setAddAts }}" style="height:30px;border:1px solid #E5E3DB;border-radius:8px;background:#FFFFFF;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#33372F;padding:0 4px;">
+              <option value="greenhouse">Greenhouse</option>
+              <option value="lever">Lever</option>
+              <option value="ashby">Ashby</option>
+              <option value="smartrecruiters">SmartRecruiters</option>
+              <option value="custom">Custom JSON URL</option>
+            </select>
+            <input value="{{ addSlug }}" onChange="{{ setAddSlug }}" onKeyDown="{{ addKeyDown }}" placeholder="board slug, e.g. stripe" style="flex:1;min-width:0;height:30px;border:1px solid #E5E3DB;border-radius:8px;padding:0 8px;font-size:11.5px;font-family:'JetBrains Mono',monospace;background:#FAFAF7;color:#17191E;">
+          </div>
+          <button onClick="{{ addSource }}" style="height:30px;border:1px solid #1E6B50;background:#FFFFFF;color:#1E6B50;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;cursor:pointer;" style-hover="background:#E4F0EA;">+ Add company</button>
+          <span style="font-size:10.5px;color:#8B9086;line-height:1.5;">The slug is the company's name in its careers URL, e.g. job-boards.greenhouse.io/<b>stripe</b>, jobs.ashbyhq.com/<b>openai</b>.</span>
+        </div>
+      </div>
+    </aside>
+
+    <main style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;">
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);background:#FFFFFF;border:1px solid #E5E3DB;border-radius:14px;overflow:hidden;">
+        <div style="padding:14px 18px;border-right:1px solid #EEECE4;display:flex;flex-direction:column;gap:4px;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1.2px;color:#8B9086;">NEW IN 24H</span>
+          <span style="font-size:24px;font-weight:700;letter-spacing:-0.5px;color:#1E6B50;">{{ statNew }}</span>
+        </div>
+        <div style="padding:14px 18px;border-right:1px solid #EEECE4;display:flex;flex-direction:column;gap:4px;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1.2px;color:#8B9086;">SAVED</span>
+          <span style="font-size:24px;font-weight:700;letter-spacing:-0.5px;">{{ statSaved }}</span>
+        </div>
+        <div style="padding:14px 18px;border-right:1px solid #EEECE4;display:flex;flex-direction:column;gap:4px;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1.2px;color:#8B9086;">APPLIED</span>
+          <span style="font-size:24px;font-weight:700;letter-spacing:-0.5px;">{{ statApplied }}</span>
+        </div>
+        <div style="padding:14px 18px;display:flex;flex-direction:column;gap:4px;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;letter-spacing:1.2px;color:#8B9086;">FETCHED · 14D</span>
+          <span style="font-size:24px;font-weight:700;letter-spacing:-0.5px;color:#8B9086;">{{ statTotal }}</span>
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:6px;border-bottom:1px solid #E5E3DB;flex-wrap:wrap;">
+        <sc-for list="{{ tabs }}" as="tab" hint-placeholder-count="4">
+          <button onClick="{{ tab.onClick }}" style="{{ tab.style }}">{{ tab.label }}<span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#8B9086;margin-left:6px;">{{ tab.count }}</span></button>
+        </sc-for>
+        <div style="flex:1;"></div>
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8B9086;margin-right:8px;">{{ resultLabel }}</span>
+        <sc-for list="{{ sortChips }}" as="chip" hint-placeholder-count="2">
+          <button onClick="{{ chip.onClick }}" style="{{ chip.style }}">{{ chip.label }}</button>
+        </sc-for>
+        <div style="width:10px;"></div>
+        <div style="display:flex;border:1px solid #E5E3DB;border-radius:9px;overflow:hidden;margin-bottom:8px;">
+          <sc-for list="{{ layoutBtns }}" as="chip" hint-placeholder-count="3">
+            <button onClick="{{ chip.onClick }}" style="{{ chip.style }}">{{ chip.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <sc-if value="{{ showLoading }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#FFFFFF;border:1px solid #E5E3DB;border-radius:14px;padding:48px 24px;display:flex;flex-direction:column;align-items:center;gap:12px;">
+          <div style="width:22px;height:22px;border:3px solid #DCEDE4;border-top-color:#1E6B50;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+          <span style="font-size:14px;font-weight:600;">Fetching live postings…</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8B9086;">{{ loadingSub }}</span>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showCards }}" hint-placeholder-val="{{ true }}">
+        <div style="{{ listStyle }}">
+          <sc-for list="{{ jobsList }}" as="item" hint-placeholder-count="4">
+            <div style="background:#FFFFFF;border:1px solid #E5E3DB;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px;">
+              <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;">
+                <div style="{{ item.logoStyle }}">{{ item.ini }}</div>
+                <div style="flex:1;min-width:240px;display:flex;flex-direction:column;gap:7px;">
+                  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                    <a href="{{ item.url }}" target="_blank" style="font-size:16px;font-weight:700;letter-spacing:-0.2px;color:#17191E;">{{ item.title }}</a>
+                    <sc-if value="{{ item.applied }}" hint-placeholder-val="{{ false }}">
+                      <span style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;color:#1E6B50;background:#E4F0EA;border-radius:5px;padding:2px 7px;">APPLIED</span>
+                    </sc-if>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px;color:#5E635B;">
+                    <span style="font-weight:600;color:#33372F;">{{ item.company }}</span>
+                    <span style="color:#C6C3B8;">·</span>
+                    <span>{{ item.loc }}</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;border:1px solid #E5E3DB;border-radius:5px;padding:1px 6px;color:#5E635B;background:#FAFAF7;">{{ item.mode }}</span>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#1E6B50;font-weight:600;">{{ item.salary }}</span>
+                  </div>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                    <sc-for list="{{ item.tags4 }}" as="tag" hint-placeholder-count="3">
+                      <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;background:#F1EFE9;border-radius:5px;padding:3px 7px;color:#4A4E49;">{{ tag }}</span>
+                    </sc-for>
+                    <span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:#8B9086;">{{ item.more }}</span>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;flex:none;">
+                  <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8B9086;">{{ item.ago }} · via {{ item.src }}</span>
+                  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+                    <button onClick="{{ item.toggleSave }}" style="{{ item.saveStyle }}">{{ item.saveLabel }}</button>
+                    <button onClick="{{ item.toggleHide }}" style="border:1px solid #E5E3DB;background:#FFFFFF;border-radius:8px;padding:6px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#5E635B;cursor:pointer;white-space:nowrap;flex:none;" style-hover="border-color:#B9BFB3;color:#17191E;">{{ item.hideLabel }}</button>
+                    <button onClick="{{ item.toggleDetails }}" style="border:1px solid #E5E3DB;background:#FFFFFF;border-radius:8px;padding:6px 10px;font-family:'JetBrains Mono',monospace;font-size:11px;color:#5E635B;cursor:pointer;white-space:nowrap;flex:none;" style-hover="border-color:#B9BFB3;color:#17191E;">{{ item.detailsLabel }}</button>
+                    <button onClick="{{ item.apply }}" style="{{ item.applyStyle }}">{{ item.applyLabel }}</button>
+                  </div>
+                </div>
+              </div>
+              <sc-if value="{{ item.expanded }}" hint-placeholder-val="{{ false }}">
+                <div style="border-top:1px solid #EEECE4;padding-top:14px;display:flex;flex-direction:column;gap:10px;">
+                  <p style="margin:0;font-size:13.5px;line-height:1.65;color:#45493F;max-width:800px;white-space:pre-line;">{{ item.desc }}</p>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8B9086;">{{ item.allTags }}</div>
+                  <div style="display:flex;gap:16px;align-items:center;">
+                    <a href="{{ item.url }}" target="_blank" style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;">Open original posting ↗</a>
+                    <sc-if value="{{ item.applied }}" hint-placeholder-val="{{ false }}">
+                      <button onClick="{{ item.unapply }}" style="border:none;background:none;padding:0;font-family:'JetBrains Mono',monospace;font-size:11px;color:#8B9086;cursor:pointer;text-decoration:underline;">Unmark applied</button>
+                    </sc-if>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showCompact }}" hint-placeholder-val="{{ false }}">
+        <div style="border:1px solid #E5E3DB;border-radius:14px;background:#FFFFFF;overflow:hidden;display:flex;flex-direction:column;">
+          <sc-for list="{{ jobsList }}" as="item" hint-placeholder-count="8">
+            <div style="display:flex;flex-direction:column;border-bottom:1px solid #EEECE4;">
+              <div style="display:flex;align-items:center;gap:12px;padding:10px 16px;">
+                <div style="{{ item.logoSmStyle }}">{{ item.ini }}</div>
+                <div style="width:280px;min-width:0;display:flex;flex-direction:column;gap:1px;">
+                  <a href="{{ item.url }}" target="_blank" style="font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#17191E;display:block;">{{ item.title }}</a>
+                  <span style="font-size:12px;color:#787D75;">{{ item.company }}</span>
+                </div>
+                <span style="flex:1;font-size:12px;color:#5E635B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ item.loc }} · {{ item.mode }}</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#1E6B50;font-weight:600;width:100px;flex:none;">{{ item.salary }}</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8B9086;width:72px;flex:none;text-align:right;">{{ item.ago }}</span>
+                <div style="display:flex;gap:6px;align-items:center;flex:none;">
+                  <button onClick="{{ item.toggleSave }}" style="{{ item.saveSmStyle }}">{{ item.saveShort }}</button>
+                  <button onClick="{{ item.toggleHide }}" style="border:1px solid #E5E3DB;background:#FFFFFF;border-radius:7px;padding:4px 8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#5E635B;cursor:pointer;white-space:nowrap;flex:none;" style-hover="border-color:#B9BFB3;color:#17191E;">{{ item.hideLabel }}</button>
+                  <button onClick="{{ item.toggleDetails }}" style="border:1px solid #E5E3DB;background:#FFFFFF;border-radius:7px;padding:4px 8px;font-family:'JetBrains Mono',monospace;font-size:10px;color:#5E635B;cursor:pointer;white-space:nowrap;flex:none;" style-hover="border-color:#B9BFB3;color:#17191E;">{{ item.detailsLabel }}</button>
+                  <button onClick="{{ item.apply }}" style="{{ item.applySmStyle }}">{{ item.applyLabel }}</button>
+                </div>
+              </div>
+              <sc-if value="{{ item.expanded }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:0 16px 14px 56px;display:flex;flex-direction:column;gap:8px;">
+                  <p style="margin:0;font-size:13px;line-height:1.6;color:#45493F;max-width:800px;white-space:pre-line;">{{ item.desc }}</p>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#8B9086;">{{ item.allTags }} · via {{ item.src }}</div>
+                  <a href="{{ item.url }}" target="_blank" style="font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:600;">Open original posting ↗</a>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ showMore }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ loadMore }}" style="border:1px solid #E5E3DB;background:#FFFFFF;border-radius:10px;padding:10px;font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:600;color:#33372F;cursor:pointer;" style-hover="border-color:#1E6B50;color:#1E6B50;">{{ showMoreLabel }}</button>
+      </sc-if>
+
+      <sc-if value="{{ showEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="background:#FFFFFF;border:1px solid #E5E3DB;border-radius:14px;padding:56px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;">
+          <span style="font-size:17px;font-weight:700;">No matching roles</span>
+          <span style="font-size:13px;color:#787D75;">Try widening your filters, or clear them to see everything.</span>
+          <button onClick="{{ clearAll }}" style="margin-top:6px;border:1px solid #1E6B50;background:#FFFFFF;color:#1E6B50;border-radius:9px;padding:8px 16px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;cursor:pointer;" style-hover="background:#E4F0EA;">Clear all filters</button>
+        </div>
+      </sc-if>
+
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1440, &quot;height&quot;: 900}}">
+class Component extends DCLogic {
+  state = {
+    query: '', loc: '', mode: 'All', salaryMin: 0, tags: [], ats: 'All', within: '24h', country: 'US', exp: '0-3',
+    roleOnly: true, tab: 'all', sort: 'new', layout: 'cards', showCount: 30,
+    expanded: {}, saved: {}, hidden: {}, applied: {},
+    sources: null, cache: {}, status: {}, lastSync: 0,
+    addAts: 'greenhouse', addSlug: ''
+  };
+
+  DEFAULT_SOURCES = [
+    { ats: 'greenhouse', slug: 'stripe', label: 'Stripe' },
+    { ats: 'greenhouse', slug: 'anthropic', label: 'Anthropic' },
+    { ats: 'greenhouse', slug: 'databricks', label: 'Databricks' },
+    { ats: 'greenhouse', slug: 'figma', label: 'Figma' },
+    { ats: 'greenhouse', slug: 'cloudflare', label: 'Cloudflare' },
+    { ats: 'greenhouse', slug: 'scaleai', label: 'Scale AI' },
+    { ats: 'greenhouse', slug: 'airbnb', label: 'Airbnb' },
+    { ats: 'greenhouse', slug: 'pinterest', label: 'Pinterest' },
+    { ats: 'greenhouse', slug: 'coinbase', label: 'Coinbase' },
+    { ats: 'greenhouse', slug: 'doordashusa', label: 'DoorDash' },
+    { ats: 'greenhouse', slug: 'instacart', label: 'Instacart' },
+    { ats: 'greenhouse', slug: 'dropbox', label: 'Dropbox' },
+    { ats: 'greenhouse', slug: 'gitlab', label: 'GitLab' },
+    { ats: 'greenhouse', slug: 'hashicorp', label: 'HashiCorp' },
+    { ats: 'greenhouse', slug: 'mongodb', label: 'MongoDB' },
+    { ats: 'greenhouse', slug: 'datadog', label: 'Datadog' },
+    { ats: 'greenhouse', slug: 'twilio', label: 'Twilio' },
+    { ats: 'greenhouse', slug: 'okta', label: 'Okta' },
+    { ats: 'greenhouse', slug: 'asana', label: 'Asana' },
+    { ats: 'greenhouse', slug: 'robinhood', label: 'Robinhood' },
+    { ats: 'greenhouse', slug: 'reddit', label: 'Reddit' },
+    { ats: 'greenhouse', slug: 'discord', label: 'Discord' },
+    { ats: 'greenhouse', slug: 'lyft', label: 'Lyft' },
+    { ats: 'greenhouse', slug: 'elastic', label: 'Elastic' },
+    { ats: 'greenhouse', slug: 'samsara', label: 'Samsara' },
+    { ats: 'greenhouse', slug: 'gusto', label: 'Gusto' },
+    { ats: 'greenhouse', slug: 'affirm', label: 'Affirm' },
+    { ats: 'greenhouse', slug: 'flexport', label: 'Flexport' },
+    { ats: 'greenhouse', slug: 'airtable', label: 'Airtable' },
+    { ats: 'greenhouse', slug: 'amplitude', label: 'Amplitude' },
+    { ats: 'greenhouse', slug: 'benchling', label: 'Benchling' },
+    { ats: 'greenhouse', slug: 'braze', label: 'Braze' },
+    { ats: 'greenhouse', slug: 'carta', label: 'Carta' },
+    { ats: 'greenhouse', slug: 'chime', label: 'Chime' },
+    { ats: 'greenhouse', slug: 'coursera', label: 'Coursera' },
+    { ats: 'greenhouse', slug: 'duolingo', label: 'Duolingo' },
+    { ats: 'greenhouse', slug: 'grammarly', label: 'Grammarly' },
+    { ats: 'greenhouse', slug: 'intercom', label: 'Intercom' },
+    { ats: 'greenhouse', slug: 'klaviyo', label: 'Klaviyo' },
+    { ats: 'greenhouse', slug: 'mixpanel', label: 'Mixpanel' },
+    { ats: 'greenhouse', slug: 'niantic', label: 'Niantic' },
+    { ats: 'greenhouse', slug: 'nuro', label: 'Nuro' },
+    { ats: 'greenhouse', slug: 'opendoor', label: 'Opendoor' },
+    { ats: 'greenhouse', slug: 'pagerduty', label: 'PagerDuty' },
+    { ats: 'greenhouse', slug: 'postman', label: 'Postman' },
+    { ats: 'greenhouse', slug: 'quora', label: 'Quora' },
+    { ats: 'greenhouse', slug: 'sentry', label: 'Sentry' },
+    { ats: 'greenhouse', slug: 'squarespace', label: 'Squarespace' },
+    { ats: 'greenhouse', slug: 'strava', label: 'Strava' },
+    { ats: 'greenhouse', slug: 'turo', label: 'Turo' },
+    { ats: 'greenhouse', slug: 'udemy', label: 'Udemy' },
+    { ats: 'greenhouse', slug: 'vercel', label: 'Vercel' },
+    { ats: 'greenhouse', slug: 'waymo', label: 'Waymo' },
+    { ats: 'greenhouse', slug: 'webflow', label: 'Webflow' },
+    { ats: 'greenhouse', slug: 'thumbtack', label: 'Thumbtack' },
+    { ats: 'greenhouse', slug: 'lattice', label: 'Lattice' },
+    { ats: 'greenhouse', slug: 'monzo', label: 'Monzo' },
+    { ats: 'greenhouse', slug: 'transferwise', label: 'Wise' },
+    { ats: 'greenhouse', slug: 'zapier', label: 'Zapier' },
+    { ats: 'greenhouse', slug: 'xai', label: 'xAI' },
+    { ats: 'greenhouse', slug: 'checkr', label: 'Checkr' },
+    { ats: 'greenhouse', slug: 'epicgames', label: 'Epic Games' },
+    { ats: 'greenhouse', slug: 'snowflakecomputing', label: 'Snowflake' },
+    { ats: 'greenhouse', slug: 'brex', label: 'Brex' },
+    { ats: 'lever', slug: 'palantir', label: 'Palantir' },
+    { ats: 'lever', slug: 'plaid', label: 'Plaid' },
+    { ats: 'lever', slug: 'zoox', label: 'Zoox' },
+    { ats: 'lever', slug: 'attentive', label: 'Attentive' },
+    { ats: 'lever', slug: 'anduril', label: 'Anduril' },
+    { ats: 'lever', slug: 'mistral', label: 'Mistral AI' },
+    { ats: 'lever', slug: 'kraken123', label: 'Kraken' },
+    { ats: 'lever', slug: 'whoop', label: 'WHOOP' },
+    { ats: 'lever', slug: 'veeva', label: 'Veeva' },
+    { ats: 'lever', slug: 'lucidmotors', label: 'Lucid Motors' },
+    { ats: 'lever', slug: 'aurora', label: 'Aurora' },
+    { ats: 'lever', slug: 'voleon', label: 'Voleon' },
+    { ats: 'ashby', slug: 'openai', label: 'OpenAI' },
+    { ats: 'ashby', slug: 'ramp', label: 'Ramp' },
+    { ats: 'ashby', slug: 'linear', label: 'Linear' },
+    { ats: 'ashby', slug: 'notion', label: 'Notion' },
+    { ats: 'ashby', slug: 'cursor', label: 'Cursor' },
+    { ats: 'ashby', slug: 'replit', label: 'Replit' },
+    { ats: 'ashby', slug: 'supabase', label: 'Supabase' },
+    { ats: 'ashby', slug: 'vanta', label: 'Vanta' },
+    { ats: 'ashby', slug: 'mercury', label: 'Mercury' },
+    { ats: 'ashby', slug: 'sierra', label: 'Sierra' },
+    { ats: 'ashby', slug: 'elevenlabs', label: 'ElevenLabs' },
+    { ats: 'ashby', slug: 'perplexity-ai', label: 'Perplexity' },
+    { ats: 'ashby', slug: 'harvey', label: 'Harvey' },
+    { ats: 'ashby', slug: 'langchain', label: 'LangChain' },
+    { ats: 'ashby', slug: 'posthog', label: 'PostHog' },
+    { ats: 'ashby', slug: 'warpdotdev', label: 'Warp' },
+    { ats: 'ashby', slug: 'deel', label: 'Deel' },
+    { ats: 'ashby', slug: 'docker', label: 'Docker' },
+    { ats: 'ashby', slug: 'retool', label: 'Retool' },
+    { ats: 'ashby', slug: 'glean', label: 'Glean' },
+    { ats: 'greenhouse', slug: 'roblox', label: 'Roblox' },
+    { ats: 'greenhouse', slug: 'spacex', label: 'SpaceX' },
+    { ats: 'greenhouse', slug: 'wayfair', label: 'Wayfair' },
+    { ats: 'greenhouse', slug: 'peloton', label: 'Peloton' },
+    { ats: 'greenhouse', slug: 'etsy', label: 'Etsy' },
+    { ats: 'greenhouse', slug: 'shieldai', label: 'Shield AI' },
+    { ats: 'greenhouse', slug: 'cruise', label: 'Cruise' },
+    { ats: 'greenhouse', slug: 'zipline', label: 'Zipline' },
+    { ats: 'greenhouse', slug: 'tempus', label: 'Tempus' },
+    { ats: 'greenhouse', slug: 'faire', label: 'Faire' },
+    { ats: 'greenhouse', slug: 'whatnot', label: 'Whatnot' },
+    { ats: 'greenhouse', slug: 'appliedintuition', label: 'Applied Intuition' },
+    { ats: 'greenhouse', slug: 'runwayml', label: 'Runway' },
+    { ats: 'greenhouse', slug: 'grafanalabs', label: 'Grafana Labs' },
+    { ats: 'greenhouse', slug: 'confluent', label: 'Confluent' },
+    { ats: 'greenhouse', slug: 'snyk', label: 'Snyk' },
+    { ats: 'greenhouse', slug: 'wizinc', label: 'Wiz' },
+    { ats: 'greenhouse', slug: 'chainalysis', label: 'Chainalysis' },
+    { ats: 'greenhouse', slug: 'circle', label: 'Circle' },
+    { ats: 'greenhouse', slug: 'marqeta', label: 'Marqeta' },
+    { ats: 'greenhouse', slug: 'patreon', label: 'Patreon' },
+    { ats: 'greenhouse', slug: 'twosigma', label: 'Two Sigma' },
+    { ats: 'greenhouse', slug: 'wehrtyou', label: 'Hudson River Trading' },
+    { ats: 'greenhouse', slug: 'jumptrading', label: 'Jump Trading' },
+    { ats: 'greenhouse', slug: 'akunacapital', label: 'Akuna Capital' },
+    { ats: 'greenhouse', slug: 'sourcegraph91', label: 'Sourcegraph' },
+    { ats: 'greenhouse', slug: 'temporaltechnologies', label: 'Temporal' },
+    { ats: 'greenhouse', slug: 'nerdwallet', label: 'NerdWallet' },
+    { ats: 'lever', slug: 'cohere', label: 'Cohere' },
+    { ats: 'lever', slug: 'wandb', label: 'Weights & Biases' },
+    { ats: 'lever', slug: 'canva', label: 'Canva' },
+    { ats: 'ashby', slug: 'render', label: 'Render' },
+    { ats: 'ashby', slug: 'suno', label: 'Suno' },
+    { ats: 'ashby', slug: 'decagon', label: 'Decagon' },
+    { ats: 'ashby', slug: 'clay', label: 'Clay' },
+    { ats: 'ashby', slug: 'kalshi', label: 'Kalshi' },
+    { ats: 'ashby', slug: 'polymarket', label: 'Polymarket' },
+    { ats: 'ashby', slug: 'moderntreasury', label: 'Modern Treasury' },
+    { ats: 'ashby', slug: 'substack', label: 'Substack' },
+    { ats: 'ashby', slug: 'persona', label: 'Persona' },
+    { ats: 'ashby', slug: 'browserbase', label: 'Browserbase' },
+    { ats: 'ashby', slug: 'cognition', label: 'Cognition' },
+    { ats: 'smartrecruiters', slug: 'Visa', label: 'Visa' },
+    { ats: 'smartrecruiters', slug: 'ServiceNow', label: 'ServiceNow' },
+    { ats: 'greenhouse', slug: 'axon', label: 'Axon' },
+    { ats: 'greenhouse', slug: 'verkada', label: 'Verkada' },
+    { ats: 'greenhouse', slug: 'skydio', label: 'Skydio' },
+    { ats: 'greenhouse', slug: 'purestorage', label: 'Pure Storage' },
+    { ats: 'greenhouse', slug: 'rubrik', label: 'Rubrik' },
+    { ats: 'greenhouse', slug: 'abnormalsecurity', label: 'Abnormal AI' },
+    { ats: 'greenhouse', slug: 'twitch', label: 'Twitch' },
+    { ats: 'greenhouse', slug: 'unity3d', label: 'Unity' },
+    { ats: 'greenhouse', slug: 'riotgames', label: 'Riot Games' },
+    { ats: 'greenhouse', slug: 'betterment', label: 'Betterment' },
+    { ats: 'greenhouse', slug: 'addepar1', label: 'Addepar' },
+    { ats: 'greenhouse', slug: 'gemini', label: 'Gemini' },
+    { ats: 'greenhouse', slug: 'uniswaplabs', label: 'Uniswap Labs' },
+    { ats: 'greenhouse', slug: 'consensys', label: 'Consensys' },
+    { ats: 'greenhouse', slug: 'nubank', label: 'Nubank' },
+    { ats: 'greenhouse', slug: 'pinecone', label: 'Pinecone' },
+    { ats: 'greenhouse', slug: 'dbtlabsinc', label: 'dbt Labs' },
+    { ats: 'greenhouse', slug: 'fivetran', label: 'Fivetran' },
+    { ats: 'greenhouse', slug: 'airbyte', label: 'Airbyte' },
+    { ats: 'greenhouse', slug: 'anyscale', label: 'Anyscale' },
+    { ats: 'greenhouse', slug: 'cerebras', label: 'Cerebras' },
+    { ats: 'greenhouse', slug: 'lambda', label: 'Lambda' },
+    { ats: 'greenhouse', slug: 'coreweave', label: 'CoreWeave' },
+    { ats: 'greenhouse', slug: 'circleci', label: 'CircleCI' },
+    { ats: 'greenhouse', slug: 'launchdarkly', label: 'LaunchDarkly' },
+    { ats: 'greenhouse', slug: 'chainguard', label: 'Chainguard' },
+    { ats: 'greenhouse', slug: 'clickhouse', label: 'ClickHouse' },
+    { ats: 'greenhouse', slug: 'astronomer', label: 'Astronomer' },
+    { ats: 'greenhouse', slug: 'zocdoc', label: 'Zocdoc' },
+    { ats: 'greenhouse', slug: 'oscar', label: 'Oscar Health' },
+    { ats: 'greenhouse', slug: 'calm', label: 'Calm' },
+    { ats: 'greenhouse', slug: 'gong', label: 'Gong' },
+    { ats: 'greenhouse', slug: 'outreach', label: 'Outreach' },
+    { ats: 'greenhouse', slug: 'apolloio', label: 'Apollo.io' },
+    { ats: 'greenhouse', slug: 'workato', label: 'Workato' },
+    { ats: 'greenhouse', slug: 'mirocompany', label: 'Miro' },
+    { ats: 'greenhouse', slug: 'clickup', label: 'ClickUp' },
+    { ats: 'greenhouse', slug: 'springhealth', label: 'Spring Health' },
+    { ats: 'greenhouse', slug: 'includedhealth', label: 'Included Health' },
+    { ats: 'greenhouse', slug: 'okx', label: 'OKX' },
+    { ats: 'greenhouse', slug: 'quizlet', label: 'Quizlet' },
+    { ats: 'lever', slug: 'harness', label: 'Harness' },
+    { ats: 'lever', slug: 'wealthfront', label: 'Wealthfront' },
+    { ats: 'lever', slug: 'gopuff', label: 'Gopuff' },
+    { ats: 'lever', slug: 'crypto', label: 'Crypto.com' },
+    { ats: 'ashby', slug: 'modal', label: 'Modal' },
+    { ats: 'ashby', slug: 'baseten', label: 'Baseten' },
+    { ats: 'ashby', slug: 'tailscale', label: 'Tailscale' },
+    { ats: 'ashby', slug: 'headway', label: 'Headway' },
+    { ats: 'ashby', slug: 'abridge', label: 'Abridge' },
+    { ats: 'ashby', slug: 'eightsleep', label: 'Eight Sleep' },
+    { ats: 'ashby', slug: 'watershed', label: 'Watershed' }
+  ];
+
+  BAD_SLUGS = ['greenhouse:hashicorp', 'greenhouse:benchling', 'greenhouse:grammarly', 'greenhouse:niantic', 'greenhouse:opendoor', 'greenhouse:quora', 'greenhouse:sentry', 'greenhouse:strava', 'greenhouse:turo', 'greenhouse:thumbtack', 'greenhouse:transferwise', 'greenhouse:zapier', 'greenhouse:snowflakecomputing', 'lever:attentive', 'lever:anduril', 'lever:lucidmotors', 'lever:aurora', 'ashby:perplexity-ai', 'ashby:warpdotdev', 'ashby:retool', 'ashby:glean'];
+
+  TAG_LIST = ['Python', 'Java', 'JavaScript', 'TypeScript', 'Go', 'Rust', 'C++', 'C#', 'Ruby', 'SQL', 'React', 'Node.js', 'Kubernetes', 'Docker', 'AWS', 'GCP', 'Azure', 'PyTorch', 'TensorFlow', 'LLM', 'Spark', 'Kafka', 'GraphQL', 'Terraform', 'Postgres', 'Redis'];
+  FILTER_TAGS = ['Python', 'TypeScript', 'Go', 'Java', 'Rust', 'C++', 'React', 'SQL', 'Kubernetes', 'AWS', 'PyTorch', 'LLM'];
+  ROLE_WORDS = ['software', 'engineer', 'developer', 'machine learning', ' ml ', ' ai ', 'artificial intelligence', 'sre', 'devops', 'infrastructure', 'data scientist', 'research scientist'];
+
+  componentDidMount() {
+    let st = {}, cache = {};
+    try { st = JSON.parse(localStorage.getItem('jobradar_state') || '{}'); } catch (e) { st = {}; }
+    try { cache = JSON.parse(localStorage.getItem('jobradar_cache') || '{}'); } catch (e) { cache = {}; }
+    let sources = Array.isArray(st.sources) && st.sources.length ? st.sources : this.DEFAULT_SOURCES;
+    const bad = new Set(this.BAD_SLUGS);
+    sources = sources.filter(x => !bad.has(x.ats + ':' + x.slug));
+    if (!st.seedV5) {
+      const have = new Set(sources.map(x => x.ats + ':' + x.slug));
+      sources = sources.concat(this.DEFAULT_SOURCES.filter(x => !have.has(x.ats + ':' + x.slug) && !bad.has(x.ats + ':' + x.slug)));
+    }
+    this.setState({
+      sources, cache,
+      saved: st.saved || {}, hidden: st.hidden || {}, applied: st.applied || {},
+      query: st.query || '', loc: st.loc || '', mode: st.mode || 'All',
+      salaryMin: st.salaryMin || 0, tags: st.tags || [], ats: st.ats || 'All',
+      within: ['6h', '24h', '7d', '14d'].includes(st.within) ? st.within : '24h', roleOnly: st.roleOnly !== false,
+      country: st.country || 'US', exp: st.exp || '0-3',
+      sort: st.sort || 'new', layout: st.layout || 'cards',
+      lastSync: st.lastSync || 0
+    }, () => this.syncAll(false));
+    this.agoTimer = setInterval(() => this.forceUpdate(), 30000);
+    this.syncTimer = setInterval(() => this.syncAll(false), 5 * 60 * 1000);
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.agoTimer);
+    clearInterval(this.syncTimer);
+  }
+
+  persist() {
+    const s = this.state;
+    try {
+      localStorage.setItem('jobradar_state', JSON.stringify({
+        sources: s.sources, saved: s.saved, hidden: s.hidden, applied: s.applied,
+        query: s.query, loc: s.loc, mode: s.mode, salaryMin: s.salaryMin, tags: s.tags,
+        ats: s.ats, within: s.within, roleOnly: s.roleOnly, sort: s.sort, layout: s.layout,
+        lastSync: s.lastSync, seedV5: true,
+        country: s.country, exp: s.exp
+      }));
+      // trim cache for storage: newest 50 per source, short descriptions
+      const trimmed = {};
+      for (const k of Object.keys(s.cache)) {
+        const c = s.cache[k];
+        trimmed[k] = {
+          fetchedAt: c.fetchedAt,
+          jobs: (c.jobs || []).slice(0, 50).map(j => Object.assign({}, j, { desc: (j.desc || '').slice(0, 300) }))
+        };
+      }
+      localStorage.setItem('jobradar_cache', JSON.stringify(trimmed));
+    } catch (e) { /* storage full — skip cache */
+      try {
+        localStorage.removeItem('jobradar_cache');
+      } catch (e2) {}
+    }
+  }
+
+  set(patch) { this.setState(patch, () => this.persist()); }
+
+  // ---------- fetching ----------
+  syncAll(force) {
+    const s = this.state;
+    if (!s.sources) return;
+    const now = Date.now();
+    s.sources.forEach(src => {
+      const key = src.ats + ':' + src.slug;
+      const cached = s.cache[key];
+      const stale = !cached || (now - (cached.fetchedAt || 0)) > 4 * 60 * 1000;
+      if (force || stale) this.fetchSource(src);
+    });
+  }
+
+  fetchSource(src) {
+    const key = src.ats + ':' + src.slug;
+    this.setState(s => ({ status: Object.assign({}, s.status, { [key]: { state: 'loading' } }) }));
+    this.doFetch(src).then(res => {
+      if (res.ok) {
+        this.setState(s => ({
+          cache: Object.assign({}, s.cache, { [key]: { fetchedAt: Date.now(), jobs: res.jobs } }),
+          status: Object.assign({}, s.status, { [key]: { state: 'ok', count: res.jobs.length } }),
+          lastSync: Date.now()
+        }), () => this.persist());
+      } else {
+        const is404 = /\b404\b/.test(res.error || '');
+        const isDefault = this.DEFAULT_SOURCES.some(x => x.ats === src.ats && x.slug === src.slug);
+        if (is404 && isDefault) {
+          // seeded slug is wrong — drop it silently instead of leaving red noise
+          this.setState(s => {
+            const status = Object.assign({}, s.status);
+            delete status[key];
+            return {
+              sources: (s.sources || []).filter(x => !(x.ats === src.ats && x.slug === src.slug)),
+              status
+            };
+          }, () => this.persist());
+        } else {
+          this.setState(s => ({ status: Object.assign({}, s.status, { [key]: { state: 'error', error: res.error } }) }));
+        }
+      }
+    });
+  }
+
+  async doFetch(src) {
+    const key = src.ats + ':' + src.slug;
+    try {
+      let raw = [];
+      if (src.ats === 'greenhouse') {
+        const r = await fetch('https://boards-api.greenhouse.io/v1/boards/' + encodeURIComponent(src.slug) + '/jobs?content=true');
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const data = await r.json();
+        raw = (data.jobs || []).map(j => {
+          const desc = this.stripHtml(this.decodeEntities(j.content || ''));
+          return this.normalize(key, {
+            id: j.id, title: j.title,
+            loc: (j.location && j.location.name) || '',
+            url: j.absolute_url,
+            posted: Date.parse(j.first_published || j.updated_at || '') || Date.now(),
+            desc, salarySrc: desc, remoteHint: ''
+          }, src);
+        });
+      } else if (src.ats === 'lever') {
+        const r = await fetch('https://api.lever.co/v0/postings/' + encodeURIComponent(src.slug) + '?mode=json');
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const data = await r.json();
+        raw = (Array.isArray(data) ? data : []).map(j => {
+          const desc = (j.descriptionPlain || this.stripHtml(j.description || '')).trim();
+          let salarySrc = desc;
+          if (j.salaryRange && j.salaryRange.min) salarySrc = '$' + j.salaryRange.min + ' - $' + j.salaryRange.max + ' ' + desc;
+          return this.normalize(key, {
+            id: j.id, title: j.text,
+            loc: (j.categories && j.categories.location) || '',
+            url: j.hostedUrl,
+            posted: j.createdAt || Date.now(),
+            desc, salarySrc,
+            remoteHint: j.workplaceType || ''
+          }, src);
+        });
+      } else if (src.ats === 'ashby') {
+        const r = await fetch('https://api.ashbyhq.com/posting-api/job-board/' + encodeURIComponent(src.slug) + '?includeCompensation=true');
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const data = await r.json();
+        raw = (data.jobs || []).map(j => {
+          const desc = (j.descriptionPlain || this.stripHtml(this.decodeEntities(j.descriptionHtml || ''))).trim();
+          let salarySrc = desc;
+          const comp = j.compensation && (j.compensation.compensationTierSummary || j.compensation.scrapeableCompensationSalarySummary);
+          if (comp) salarySrc = comp + ' ' + desc;
+          return this.normalize(key, {
+            id: j.id, title: j.title,
+            loc: [j.location].concat((j.secondaryLocations || []).map(l => l.location)).filter(Boolean).join(' / '),
+            url: j.jobUrl || j.applyUrl,
+            posted: Date.parse(j.publishedAt || j.publishedDate || '') || Date.now(),
+            desc, salarySrc,
+            remoteHint: j.isRemote ? 'remote' : ''
+          }, src);
+        });
+      } else if (src.ats === 'custom') {
+        // Custom JSON feed (e.g. your own scraper backend). slug = URL.
+        const r = await fetch(src.slug);
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const data = await r.json();
+        raw = (Array.isArray(data) ? data : (data.jobs || [])).map(j => this.normalize(key, {
+          id: j.id || j.url, title: j.title || '',
+          loc: j.location || j.loc || '',
+          url: j.url,
+          posted: typeof j.posted === 'number' ? j.posted : (Date.parse(j.posted || '') || Date.now()),
+          desc: j.description || j.desc || '',
+          salarySrc: (j.salary || '') + ' ' + (j.description || j.desc || ''),
+          remoteHint: j.remote ? 'remote' : ''
+        }, Object.assign({}, src, { label: j.company || src.label })));
+      } else {
+        // SmartRecruiters public postings API
+        const r = await fetch('https://api.smartrecruiters.com/v1/companies/' + encodeURIComponent(src.slug) + '/postings?limit=100');
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const data = await r.json();
+        raw = (data.content || []).map(j => {
+          const locParts = [j.location && j.location.city, j.location && j.location.region, j.location && j.location.country ? String(j.location.country).toUpperCase() : ''].filter(Boolean);
+          return this.normalize(key, {
+            id: j.id, title: j.name,
+            loc: locParts.join(', ') || '—',
+            url: 'https://jobs.smartrecruiters.com/' + src.slug + '/' + j.id,
+            posted: Date.parse(j.releasedDate || '') || Date.now(),
+            desc: '', salarySrc: '',
+            remoteHint: j.location && j.location.remote ? 'remote' : ''
+          }, src);
+        });
+      }
+      // hard cap: nothing older than two weeks
+      const cutoff = Date.now() - 14 * 864e5;
+      raw = raw.filter(j => j.posted >= cutoff);
+      raw.sort((a, b) => b.posted - a.posted);
+      return { ok: true, jobs: raw.slice(0, 250) };
+    } catch (e) {
+      return { ok: false, error: String((e && e.message) || e) };
+    }
+  }
+
+  normalize(key, j, src) {
+    const text = (j.title + ' ' + j.desc).slice(0, 4000);
+    const tags = this.extractTags(text);
+    const sal = this.parseSalary(j.salarySrc || '');
+    let mode = 'Onsite';
+    const hint = (j.remoteHint || '').toLowerCase();
+    const locLower = (j.loc || '').toLowerCase();
+    if (hint === 'remote' || /remote/.test(locLower)) mode = 'Remote';
+    else if (hint === 'hybrid' || /hybrid/.test(locLower)) mode = 'Hybrid';
+    return {
+      id: key + ':' + j.id,
+      title: (j.title || '').trim(),
+      company: src.label,
+      ats: src.ats,
+      loc: (j.loc || '—').trim(),
+      mode,
+      s1: sal ? sal[0] : 0, s2: sal ? sal[1] : 0,
+      tags,
+      posted: j.posted,
+      url: j.url || '#',
+      desc: j.desc.slice(0, 700) + (j.desc.length > 700 ? '…' : '')
+    };
+  }
+
+  decodeEntities(s) {
+    const el = document.createElement('textarea');
+    el.innerHTML = s;
+    return el.value;
+  }
+
+  stripHtml(s) {
+    return s.replace(/<(p|div|li|br|h[1-6])[^>]*>/gi, '\n').replace(/<[^>]*>/g, ' ').replace(/[ \t]+/g, ' ').replace(/\n\s+/g, '\n').trim();
+  }
+
+  extractTags(text) {
+    const found = [];
+    for (const tag of this.TAG_LIST) {
+      let re;
+      if (tag === 'Go') re = /\bGo\b/;
+      else if (tag === 'Java') re = /\bJava\b(?!Script)/i;
+      else if (tag === 'C++') re = /C\+\+/;
+      else if (tag === 'C#') re = /C#/;
+      else if (tag === 'Node.js') re = /\bNode(\.js)?\b/i;
+      else if (tag === 'LLM') re = /\bLLMs?\b|\blarge language model/i;
+      else re = new RegExp('\\b' + tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
+      if (re.test(text)) found.push(tag);
+    }
+    return found;
+  }
+
+  parseSalary(text) {
+    const m = text.match(/\$\s?(\d{1,3}(?:,\d{3})?(?:\.\d+)?)\s*([kK])?\s*(?:-|–|—|to)\s*\$?\s?(\d{1,3}(?:,\d{3})?(?:\.\d+)?)\s*([kK])?/);
+    if (!m) return null;
+    let a = parseFloat(m[1].replace(/,/g, ''));
+    let b = parseFloat(m[3].replace(/,/g, ''));
+    if (m[2] || a < 1000) a *= 1000;
+    if (m[4] || b < 1000) b *= 1000;
+    if (a < 20000 || b > 2000000 || b < a) return null;
+    return [Math.round(a / 1000) * 1000, Math.round(b / 1000) * 1000];
+  }
+
+  // ---------- derived ----------
+  allJobs() {
+    const s = this.state;
+    if (!s.sources) return [];
+    const keys = new Set(s.sources.map(x => x.ats + ':' + x.slug));
+    let out = [];
+    for (const k of Object.keys(s.cache)) {
+      if (keys.has(k) && s.cache[k].jobs) out = out.concat(s.cache[k].jobs);
+    }
+    return out;
+  }
+
+  matchesFilters(j) {
+    const s = this.state;
+    if (s.roleOnly) {
+      const t = ' ' + j.title.toLowerCase() + ' ';
+      if (!this.ROLE_WORDS.some(w => t.includes(w))) return false;
+      if (/mechanical|electrical|civil engineer|structural|manufacturing|industrial engineer|process engineer|facilities|hvac|mechatronic|thermal|avionics|propulsion|materials engineer|quality engineer|validation engineer|calibration|technician|recruit|human resources|\bhr\b|people (ops|operations|partner|team)|talent|sales engineer|account (executive|manager)|marketing|payroll|benefits|paralegal|attorney|counsel|accountant|bookkeep|workplace|real estate|chef|culinary|warehouse|driver/.test(t)) return false;
+    }
+    if (s.query) {
+      const q = s.query.toLowerCase();
+      const hay = (j.title + ' ' + j.company + ' ' + j.tags.join(' ') + ' ' + j.loc).toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    if (s.loc) {
+      const l = s.loc.toLowerCase();
+      if (!(j.loc.toLowerCase().includes(l) || (l === 'remote' && j.mode === 'Remote'))) return false;
+    }
+    if (s.mode !== 'All' && j.mode !== s.mode) return false;
+    if (s.salaryMin > 0 && !(j.s2 >= s.salaryMin)) return false;
+    if (s.tags.length && !s.tags.every(t => j.tags.includes(t))) return false;
+    if (s.ats !== 'All' && j.ats !== s.ats.toLowerCase()) return false;
+    const ms = { '6h': 6 * 3600e3, '24h': 864e5, '7d': 7 * 864e5, '14d': 14 * 864e5 }[s.within] || 864e5;
+    if (Date.now() - j.posted > ms) return false;
+    if (!this.matchCountry(j)) return false;
+    const bucket = this.expBucket(j);
+    if (bucket === 'intern') return false;
+    if (s.exp === 'newgrad' && bucket !== 'newgrad') return false;
+    if (s.exp === '0-3' && bucket !== 'newgrad' && bucket !== 'mid') return false;
+    if (s.exp === '3-5' && bucket !== 'mid' && bucket !== 'mid5') return false;
+    return true;
+  }
+
+  matchCountry(j) {
+    const c = this.state.country;
+    if (c === 'ALL') return true;
+    const l = (j.loc || '').toLowerCase();
+    if (c === 'SG') return l.includes('singapore');
+    if (/united states|\busa\b|u\.s\.|\bus\b/.test(l)) return true;
+    if (/singapore|canada|united kingdom|\buk\b|germany|france|india|japan|australia|netherlands|ireland|poland|brazil|mexico|spain|israel|china|korea|taiwan|philippines|dublin|london|toronto|vancouver|bangalore|bengaluru|hyderabad|paris|berlin|amsterdam|tokyo|sydney|tel aviv|warsaw|lisbon|zurich|stockholm|emea|apac|latam/.test(l)) return false;
+    if (/, [a-z]{2}(?:[,;/)]|$| )/.test(l)) return true;
+    if (/california|new york|washington|texas|colorado|massachusetts|illinois|georgia|virginia|north carolina|oregon|utah|arizona|florida|pennsylvania|michigan|minnesota|tennessee|missouri|ohio|nevada|new jersey|maryland|seattle|austin|chicago|boston|denver|atlanta|san francisco|palo alto|mountain view|sunnyvale/.test(l)) return true;
+    if (j.mode === 'Remote') return true;
+    return false;
+  }
+
+  expBucket(j) {
+    const t = (j.title || '').toLowerCase();
+    if (/\bintern\b|internship|co-op|\bcoop\b|apprentice/.test(t)) return 'intern';
+    if (/senior|staff|principal|distinguished|\blead\b|manager|director|\bvp\b|vice president|head of|architect|\bsr\.?\b/.test(t)) return 'senior';
+    const d = t + ' ' + (j.desc || '').toLowerCase();
+    if (/new grad|entry.level|early career|university grad|recent grad|\bjunior\b/.test(d)) return 'newgrad';
+    const m = d.match(/(\d+)\s*\+?\s*years?/);
+    if (m) {
+      const y = parseInt(m[1], 10);
+      if (y <= 1) return 'newgrad';
+      if (y <= 3) return 'mid';
+      if (y <= 5) return 'mid5';
+      return 'senior';
+    }
+    return 'mid';
+  }
+
+  ago(t) {
+    const d = Date.now() - t;
+    if (d < 60e3) return 'just now';
+    if (d < 3600e3) return Math.floor(d / 60e3) + 'm ago';
+    if (d < 86400e3) return Math.floor(d / 3600e3) + 'h ago';
+    return Math.floor(d / 86400e3) + 'd ago';
+  }
+
+  salStr(j) {
+    if (!j.s2) return '';
+    return '$' + Math.round(j.s1 / 1000) + 'K–$' + Math.round(j.s2 / 1000) + 'K';
+  }
+
+  hashColor(name) {
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
+    return 'oklch(0.45 0.09 ' + h + ')';
+  }
+
+  chipStyle(active, small) {
+    return {
+      border: '1px solid ' + (active ? '#1E6B50' : '#E5E3DB'),
+      background: active ? '#1E6B50' : '#FFFFFF',
+      color: active ? '#FFFFFF' : '#5E635B',
+      borderRadius: 7, padding: small ? '3px 8px' : '4px 10px',
+      fontFamily: "'JetBrains Mono',monospace", fontSize: 10.5, fontWeight: 600, cursor: 'pointer',
+      whiteSpace: 'nowrap', flex: 'none'
+    };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const anyLoading = Object.values(s.status).some(x => x.state === 'loading');
+
+    // --- filters chips ---
+    const modeChips = ['All', 'Remote', 'Hybrid', 'Onsite'].map(m => ({
+      label: m, style: this.chipStyle(s.mode === m),
+      onClick: () => this.set({ mode: m, showCount: 30 })
+    }));
+    const tagChips = this.FILTER_TAGS.map(t => ({
+      label: t, style: this.chipStyle(s.tags.includes(t)),
+      onClick: () => this.set({ tags: s.tags.includes(t) ? s.tags.filter(x => x !== t) : s.tags.concat(t), showCount: 30 })
+    }));
+    const atsChips = [['All', 'All'], ['greenhouse', 'Greenhouse'], ['lever', 'Lever'], ['ashby', 'Ashby'], ['smartrecruiters', 'SmartRec']].map(([v, l]) => ({
+      label: l, style: this.chipStyle(s.ats === v || s.ats.toLowerCase() === v.toLowerCase()),
+      onClick: () => this.set({ ats: v, showCount: 30 })
+    }));
+    const expChips = [['newgrad', 'New grad'], ['0-3', '0–3 yrs'], ['3-5', '3–5 yrs'], ['any', 'Any']].map(([v, l]) => ({
+      label: l, style: this.chipStyle(s.exp === v),
+      onClick: () => this.set({ exp: v, showCount: 30 })
+    }));
+    const countryChips = [['US', 'US'], ['SG', 'Singapore'], ['ALL', 'Anywhere']].map(([v, l]) => ({
+      label: l, style: this.chipStyle(s.country === v),
+      onClick: () => this.set({ country: v, showCount: 30 })
+    }));
+    const timeChips = [['6h', '6h'], ['24h', '24h'], ['7d', '7 days'], ['14d', '14 days']].map(([v, l]) => ({
+      label: l, style: this.chipStyle(s.within === v),
+      onClick: () => this.set({ within: v, showCount: 30 })
+    }));
+
+    // --- pipeline ---
+    const all = this.allJobs();
+    const filtered = all.filter(j => this.matchesFilters(j));
+    const byTab = {
+      all: filtered.filter(j => !s.hidden[j.id]),
+      saved: filtered.filter(j => s.saved[j.id] && !s.hidden[j.id]),
+      applied: filtered.filter(j => s.applied[j.id]),
+      hidden: filtered.filter(j => s.hidden[j.id])
+    };
+    let list = byTab[s.tab] || [];
+    if (s.sort === 'new') list = list.slice().sort((a, b) => b.posted - a.posted);
+    else list = list.slice().sort((a, b) => (b.s2 || 0) - (a.s2 || 0) || b.posted - a.posted);
+    const visible = list.slice(0, s.showCount);
+
+    // --- items ---
+    const jobsList = visible.map(j => {
+      const saved = !!s.saved[j.id], applied = !!s.applied[j.id], expanded = !!s.expanded[j.id], hid = !!s.hidden[j.id];
+      const ini = j.company.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+      const bg = this.hashColor(j.company);
+      const logoBase = { color: '#FFFFFF', background: bg, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'JetBrains Mono',monospace", flex: 'none' };
+      const toggle = (field) => () => this.set({ [field]: Object.assign({}, s[field], { [j.id]: !s[field][j.id] }) });
+      return {
+        id: j.id, title: j.title, company: j.company, loc: j.loc.length > 60 ? j.loc.slice(0, 60) + '…' : j.loc,
+        mode: j.mode.toUpperCase(), salary: this.salStr(j),
+        tags4: j.tags.slice(0, 4), more: j.tags.length > 4 ? '+' + (j.tags.length - 4) + ' more' : '',
+        allTags: j.tags.join(' · ') || 'No stack keywords detected',
+        ago: this.ago(j.posted), src: j.ats.charAt(0).toUpperCase() + j.ats.slice(1),
+        url: j.url, desc: j.desc, expanded, applied,
+        ini,
+        logoStyle: Object.assign({}, logoBase, { width: 44, height: 44, borderRadius: 11, fontSize: 15 }),
+        logoSmStyle: Object.assign({}, logoBase, { width: 30, height: 30, borderRadius: 8, fontSize: 11 }),
+        toggleSave: toggle('saved'),
+        saveLabel: saved ? '★ Saved' : '☆ Save',
+        saveShort: saved ? '★' : '☆',
+        saveStyle: {
+          border: '1px solid ' + (saved ? '#1E6B50' : '#E5E3DB'), background: saved ? '#E4F0EA' : '#FFFFFF',
+          color: saved ? '#1E6B50' : '#5E635B', borderRadius: 8, padding: '6px 10px',
+          fontFamily: "'JetBrains Mono',monospace", fontSize: 11, cursor: 'pointer', fontWeight: 600,
+          whiteSpace: 'nowrap', flex: 'none'
+        },
+        saveSmStyle: {
+          border: '1px solid ' + (saved ? '#1E6B50' : '#E5E3DB'), background: saved ? '#E4F0EA' : '#FFFFFF',
+          color: saved ? '#1E6B50' : '#5E635B', borderRadius: 7, padding: '4px 8px',
+          fontFamily: "'JetBrains Mono',monospace", fontSize: 10, cursor: 'pointer', fontWeight: 600,
+          whiteSpace: 'nowrap', flex: 'none'
+        },
+        toggleHide: toggle('hidden'),
+        hideLabel: hid ? 'Unhide' : 'Hide',
+        toggleDetails: toggle('expanded'),
+        detailsLabel: expanded ? 'Close' : 'Details',
+        apply: () => {
+          window.open(j.url, '_blank');
+          if (!applied) this.set({ applied: Object.assign({}, s.applied, { [j.id]: true }) });
+        },
+        unapply: () => this.set({ applied: Object.assign({}, s.applied, { [j.id]: false }) }),
+        applyLabel: applied ? 'Applied ✓' : 'Apply ↗',
+        applyStyle: {
+          border: '1px solid #17191E', background: applied ? '#FFFFFF' : '#17191E',
+          color: applied ? '#17191E' : '#FFFFFF', borderRadius: 8, padding: '6px 12px',
+          fontFamily: "'JetBrains Mono',monospace", fontSize: 11, fontWeight: 600, cursor: 'pointer',
+          whiteSpace: 'nowrap', flex: 'none'
+        },
+        applySmStyle: {
+          border: '1px solid #17191E', background: applied ? '#FFFFFF' : '#17191E',
+          color: applied ? '#17191E' : '#FFFFFF', borderRadius: 7, padding: '4px 10px',
+          fontFamily: "'JetBrains Mono',monospace", fontSize: 10, fontWeight: 600, cursor: 'pointer',
+          whiteSpace: 'nowrap', flex: 'none'
+        }
+      };
+    });
+
+    // --- tabs ---
+    const tabDefs = [['all', 'All jobs'], ['saved', 'Saved'], ['applied', 'Applied'], ['hidden', 'Hidden']];
+    const tabs = tabDefs.map(([v, l]) => ({
+      label: l, count: String((byTab[v] || []).length),
+      onClick: () => this.set({ tab: v, showCount: 30 }),
+      style: {
+        border: 'none', background: 'none', padding: '8px 12px', cursor: 'pointer',
+        fontFamily: "'Space Grotesk',sans-serif", fontSize: 13.5, fontWeight: 600,
+        color: s.tab === v ? '#17191E' : '#8B9086',
+        borderBottom: '2px solid ' + (s.tab === v ? '#1E6B50' : 'transparent'),
+        marginBottom: -1
+      }
+    }));
+
+    const sortChips = [['new', 'Newest'], ['pay', 'Top pay']].map(([v, l]) => ({
+      label: l, style: Object.assign(this.chipStyle(s.sort === v), { marginBottom: 8 }),
+      onClick: () => this.set({ sort: v })
+    }));
+
+    const layoutBtns = [['cards', 'Cards'], ['grid', 'Grid'], ['list', 'List']].map(([v, l], i) => ({
+      label: l,
+      onClick: () => this.set({ layout: v }),
+      style: {
+        border: 'none', borderLeft: i > 0 ? '1px solid #E5E3DB' : 'none',
+        background: s.layout === v ? '#17191E' : '#FFFFFF', color: s.layout === v ? '#FFFFFF' : '#5E635B',
+        padding: '5px 10px', fontFamily: "'JetBrains Mono',monospace", fontSize: 10.5, fontWeight: 600, cursor: 'pointer'
+      }
+    }));
+
+    // --- sources rows ---
+    const sourceRows = (s.sources || []).map(src => {
+      const key = src.ats + ':' + src.slug;
+      const st = s.status[key] || {};
+      const cached = s.cache[key];
+      let dotColor = '#C6C3B8', sub = src.ats;
+      if (st.state === 'loading') { dotColor = '#D9A514'; sub = src.ats + ' · syncing…'; }
+      else if (st.state === 'error') { dotColor = '#B4231F'; sub = src.ats + ' · failed: ' + (st.error || '').slice(0, 24); }
+      else if (cached && cached.jobs) { dotColor = '#1E9E6A'; sub = src.ats + ' · ' + cached.jobs.length + ' live'; }
+      return {
+        label: src.label, sub,
+        dotStyle: { width: 7, height: 7, borderRadius: '50%', background: dotColor, flex: 'none' },
+        remove: () => {
+          const sources = s.sources.filter(x => !(x.ats === src.ats && x.slug === src.slug));
+          this.set({ sources });
+        }
+      };
+    });
+
+    const addSource = () => {
+      const slug = s.addSlug.trim().toLowerCase().replace(/\s+/g, '');
+      if (!slug) return;
+      if ((s.sources || []).some(x => x.ats === s.addAts && x.slug === slug)) { this.set({ addSlug: '' }); return; }
+      const label = slug.charAt(0).toUpperCase() + slug.slice(1);
+      const src = { ats: s.addAts, slug, label };
+      this.setState({ sources: (s.sources || []).concat(src), addSlug: '' }, () => {
+        this.persist();
+        this.fetchSource(src);
+      });
+    };
+
+    // --- stats ---
+    const now = Date.now();
+    const all24 = all.filter(j => now - j.posted < 864e5).length;
+
+    const hasFilters = !!(s.query || s.loc || s.mode !== 'All' || s.salaryMin > 0 || s.tags.length || s.ats !== 'All' || s.within !== '24h' || s.country !== 'US' || s.exp !== '0-3');
+
+    const total = list.length;
+
+    return {
+      // header
+      syncedLabel: anyLoading ? 'syncing…' : (s.lastSync ? 'synced ' + this.ago(s.lastSync) : 'not synced'),
+      liveDotStyle: { width: 7, height: 7, borderRadius: '50%', background: anyLoading ? '#D9A514' : '#1E9E6A', animation: 'pulse 2s ease-in-out infinite' },
+      refresh: () => this.syncAll(true),
+      query: s.query, setQuery: e => this.set({ query: e.target.value, showCount: 30 }),
+
+      // filters
+      hasFilters,
+      clearAll: () => this.set({ query: '', loc: '', mode: 'All', salaryMin: 0, tags: [], ats: 'All', within: '24h', country: 'US', exp: '0-3', showCount: 30 }),
+      roleOnly: s.roleOnly, toggleRoleOnly: e => this.set({ roleOnly: e.target.checked, showCount: 30 }),
+      loc: s.loc, setLoc: e => this.set({ loc: e.target.value, showCount: 30 }),
+      modeChips, tagChips, atsChips, timeChips, expChips, countryChips,
+      salaryMin: s.salaryMin, setSalary: e => this.set({ salaryMin: Number(e.target.value), showCount: 30 }),
+      salaryLabel: s.salaryMin > 0 ? '$' + Math.round(s.salaryMin / 1000) + 'K+' : 'Any',
+      salaryOn: s.salaryMin > 0,
+
+      // sources
+      sourceRows,
+      addAts: s.addAts, setAddAts: e => this.setState({ addAts: e.target.value }),
+      addSlug: s.addSlug, setAddSlug: e => this.setState({ addSlug: e.target.value }),
+      addKeyDown: e => { if (e.key === 'Enter') addSource(); },
+      addSource,
+
+      // stats
+      statNew: String(all24), statSaved: String(Object.values(s.saved).filter(Boolean).length),
+      statApplied: String(Object.values(s.applied).filter(Boolean).length),
+      statTotal: String(all.length),
+
+      // toolbar
+      tabs, sortChips, layoutBtns,
+      resultLabel: total + (total === 1 ? ' role' : ' roles'),
+
+      // list
+      jobsList,
+      listStyle: s.layout === 'grid'
+        ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(430px, 1fr))', gap: 12, alignItems: 'start' }
+        : { display: 'flex', flexDirection: 'column', gap: 12 },
+      showCards: s.layout !== 'list' && visible.length > 0,
+      showCompact: s.layout === 'list' && visible.length > 0,
+      showLoading: visible.length === 0 && anyLoading,
+      loadingSub: (s.sources || []).length + ' sources · Greenhouse, Lever, Ashby public APIs',
+      showEmpty: visible.length === 0 && !anyLoading && s.sources !== null,
+      showMore: total > s.showCount,
+      showMoreLabel: 'Show more (' + (total - s.showCount) + ' remaining)',
+      loadMore: () => this.setState({ showCount: s.showCount + 30 })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "_note": "Workday tenants: verify tenant/host/site once via the career page's network tab (the cxs URL). host is wd1/wd3/wd5/wd12 etc.",
+  "workday": [
+    { "company": "Nvidia", "tenant": "nvidia", "host": "wd5", "site": "NVIDIAExternalCareerSite" },
+    { "company": "Salesforce", "tenant": "salesforce", "host": "wd12", "site": "External_Career_Site" },
+    { "company": "Adobe", "tenant": "adobe", "host": "wd5", "site": "external_experienced" },
+    { "company": "Qualcomm", "tenant": "qualcomm", "host": "wd5", "site": "External" },
+    { "company": "Intel", "tenant": "intel", "host": "wd1", "site": "External" },
+    { "company": "PayPal", "tenant": "paypal", "host": "wd1", "site": "jobs" },
+    { "company": "Workday", "tenant": "workday", "host": "wd5", "site": "Workday" },
+    { "company": "Snap", "tenant": "wd1", "host": "wd1", "site": "snap" },
+    { "company": "Zoom", "tenant": "zoom", "host": "wd5", "site": "Zoom" },
+    { "company": "eBay", "tenant": "ebay", "host": "wd5", "site": "apply" }
+  ]
+}

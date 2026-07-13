@@ -1,0 +1,27 @@
+# Move to .github/workflows/scrape.yml
+# Free scheduled scraping: runs every 15 min, publishes public/jobs.json via GitHub Pages.
+name: scrape-jobs
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: node scraper/main.mjs
+      - name: Commit jobs.json
+        run: |
+          git config user.name jobradar-bot
+          git config user.email bot@users.noreply.github.com
+          git add public/jobs.json
+          git diff --cached --quiet || git commit -m "update jobs.json [skip ci]"
+          git push
+# Enable GitHub Pages on the repo (serve from main /public or gh-pages) and the
+# feed URL becomes: https://<user>.github.io/<repo>/jobs.json  ← paste this into
+# the app's sidebar as a "Custom JSON URL" source. GitHub Pages sends CORS: *.
